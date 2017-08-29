@@ -2,6 +2,8 @@
 import React, { Component } from 'react';
 import './App.css';
 import Web3 from 'web3';
+import abi from 'human-standard-token-abi';
+
 
 class App extends Component {
     constructor(props) {
@@ -17,7 +19,8 @@ class App extends Component {
         }
 
         this.state = {
-            address: 'LOOKING UP ADDRESS'
+            address: 'LOOKING UP ADDRESS',
+            balance: 'BALANCE'
         };
     }
 
@@ -28,10 +31,49 @@ class App extends Component {
                 component.setAddress('Error in requesting address.');
             } else{
                 if (!!accounts){
-                    component.setAddress(accounts[0]);
+                    let address = accounts[0]
+                    let address_sub = address.substr(2, address.length -2);
+                    component.setAddress(address);
+                    console.log('addressFound', address);
+                    console.log('addressFound', address_sub);
+                    window.web3.eth.getBalance(address, (err, balance) => {
+                        component.setBalance(`0.${balance.toString(10)} ETH`);
+                    });
+
+                    window.web3.eth.contract(abi).at("0xe41d2489571d322189246dafa5ebde1f4699f498", (err, token)=> {
+                        console.log(err, token);
+                        token.name.call({},(err, resp)=>{
+                            console.log(err, resp);
+                        });
+
+                        token.decimals.call({}, (err, resp)=>{
+                            let decimals = parseInt(resp.toString(10), 10);
+
+                            token.balanceOf.call(address, (err, resp)=>{
+                                let balance = resp.toString(10);
+                                let int = balance.substr(0, balance.length - decimals);
+                                let dec = balance.substr(int.length, decimals);
+                                console.log(`${int}.${dec}`);
+                            });
+                        });
+                    });
+
+
+
+                    // let funcSelector = window.web3.sha3('balanceOf(address)').slice(0,10);
+                    // console.log(funcSelector);
+                    // window.web3.eth.call({  to: "0xe41d2489571d322189246dafa5ebde1f4699f498", data: `${funcSelector}000000000000000000000000${address_sub}` }, (err, balance) => {
+                    //     console.log(err, balance);
+                    // });
                 }
             }
         });
+    }
+
+    setBalance(balance){
+        this.setState({
+            balance: balance
+        })
     }
 
     setAddress(account) {
@@ -45,8 +87,8 @@ class App extends Component {
 
         return (
             <div className="App">
-              <p> Hello World </p>
               <h2>{this.state.address}</h2>
+              <p>Balance: <b>{this.state.balance}</b></p>
             </div>
         );
     }
