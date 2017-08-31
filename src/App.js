@@ -1,5 +1,5 @@
 /* global web3 */
-import React, { Component } from 'react';
+import React, {Component} from 'react';
 import './App.css';
 import Web3 from 'web3';
 import abi from 'human-standard-token-abi';
@@ -10,17 +10,16 @@ class App extends Component {
         super(props);
 
         if (typeof web3 !== 'undefined') {
-            //Metamask
+            // console.log('Metamask used');
             window.web3 = new Web3(web3.currentProvider);
-            console.log("Metamask used");
         } else {
-            //No Metamask
-            window.web3 = new Web3(new Web3.providers.HttpProvider("https://ropsten.infura.io/token"));
+            this.setState('error', 'NO METAMASK');
         }
 
         this.state = {
             address: 'LOOKING UP ADDRESS',
-            balance: 'BALANCE'
+            ethBalance: '[ETH] BALANCE',
+            zrxBalance: '[ZRX] BALANCE'
         };
     }
 
@@ -29,23 +28,16 @@ class App extends Component {
         window.web3.eth.getAccounts(function(error, accounts) {
             if (error){
                 component.setAddress('Error in requesting address.');
-            } else{
-                if (!!accounts){
-                    let address = accounts[0]
-                    let address_sub = address.substr(2, address.length -2);
+            } else {
+                if (!!accounts) {
+                    let address = accounts[0];
                     component.setAddress(address);
-                    console.log('addressFound', address);
-                    console.log('addressFound', address_sub);
                     window.web3.eth.getBalance(address, (err, balance) => {
                         component.setBalance(`0.${balance.toString(10)} ETH`);
                     });
 
-                    window.web3.eth.contract(abi).at("0xe41d2489571d322189246dafa5ebde1f4699f498", (err, token)=> {
-                        console.log(err, token);
-                        token.name.call({},(err, resp)=>{
-                            console.log(err, resp);
-                        });
-
+                    //0x Contract address hardcoded, shouldnt be doing that
+                    window.web3.eth.contract(abi).at('0xe41d2489571d322189246dafa5ebde1f4699f498', (err, token)=> {
                         token.decimals.call({}, (err, resp)=>{
                             let decimals = parseInt(resp.toString(10), 10);
 
@@ -53,18 +45,11 @@ class App extends Component {
                                 let balance = resp.toString(10);
                                 let int = balance.substr(0, balance.length - decimals);
                                 let dec = balance.substr(int.length, decimals);
-                                console.log(`${int}.${dec}`);
+                                let zrxBalance = `${int}.${dec} ZRX`;
+                                component.set0xBalance(zrxBalance);
                             });
                         });
                     });
-
-
-
-                    // let funcSelector = window.web3.sha3('balanceOf(address)').slice(0,10);
-                    // console.log(funcSelector);
-                    // window.web3.eth.call({  to: "0xe41d2489571d322189246dafa5ebde1f4699f498", data: `${funcSelector}000000000000000000000000${address_sub}` }, (err, balance) => {
-                    //     console.log(err, balance);
-                    // });
                 }
             }
         });
@@ -72,8 +57,14 @@ class App extends Component {
 
     setBalance(balance){
         this.setState({
-            balance: balance
-        })
+            ethBalance: balance
+        });
+    }
+
+    set0xBalance(balance){
+        this.setState({
+            zrxBalance: balance
+        });
     }
 
     setAddress(account) {
@@ -87,8 +78,13 @@ class App extends Component {
 
         return (
             <div className="App">
-              <h2>{this.state.address}</h2>
-              <p>Balance: <b>{this.state.balance}</b></p>
+                <h2>{this.state.address}</h2>
+                <p>
+                    <b>{this.state.ethBalance}</b>
+                </p>
+                <p>
+                    <b>{this.state.zrxBalance}</b>
+                </p>
             </div>
         );
     }
